@@ -22,7 +22,7 @@ from model_infer import load_model, pick_device, predict_png_bytes
 ROOT = Path(__file__).resolve().parent
 CKPT = ROOT / "model" / "best.pt"
 HOST = "0.0.0.0"
-PORT = 8790
+PORT = 8799
 MIN_CONF = 0.0
 
 _model = None

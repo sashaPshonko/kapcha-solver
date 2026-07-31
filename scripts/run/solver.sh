@@ -4,14 +4,13 @@ set -euo pipefail
 cd "$(dirname "$0")/../.." || exit 1
 
 free_port() {
-    local port="${1:-8790}"
+    local port="${1:-8799}"
     if command -v fuser >/dev/null 2>&1; then
         fuser -k "${port}/tcp" 2>/dev/null || true
     fi
     if command -v lsof >/dev/null 2>&1; then
         lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null | xargs -r kill -9 2>/dev/null || true
     fi
-    # ss → pid
     local pids
     pids=$(ss -tlnp 2>/dev/null | grep ":${port} " | grep -oP 'pid=\K[0-9]+' | sort -u || true)
     for p in $pids; do
@@ -53,8 +52,8 @@ echo "[solver] wrapper pid $$ — $PY"
 "$PY" -c "import fastapi, torch; print('[solver] fastapi', fastapi.__version__, 'torch', torch.__version__)"
 
 while true; do
-    echo "[solver] free :8790"
-    free_port 8790
+    echo "[solver] free :8799"
+    free_port 8799
     sleep 1
     set +e
     "$PY" server.py
