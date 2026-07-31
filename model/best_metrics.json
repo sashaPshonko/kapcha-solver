@@ -1,0 +1,57 @@
+{
+  "epoch": 37,
+  "train_loss": 0.8477663936055436,
+  "digit_acc": 0.8929824561403509,
+  "exact_match": 0.695906432748538,
+  "char_accuracy": 0.8491228070175438,
+  "examples": [
+    {
+      "gold": "34941",
+      "pred": "44941",
+      "ok": false,
+      "file": "0789.png"
+    },
+    {
+      "gold": "30720",
+      "pred": "30720",
+      "ok": true,
+      "file": "1002.png"
+    },
+    {
+      "gold": "21645",
+      "pred": "21645",
+      "ok": true,
+      "file": "0681.png"
+    },
+    {
+      "gold": "73426",
+      "pred": "73426",
+      "ok": true,
+      "file": "0262.png"
+    },
+    {
+      "gold": "73691",
+      "pred": "73539",
+      "ok": false,
+      "file": "0045.png"
+    },
+    {
+      "gold": "74667",
+      "pred": "74667",
+      "ok": true,
+      "file": "0043.png"
+    },
+    {
+      "gold": "36550",
+      "pred": "36550",
+      "ok": true,
+      "file": "0400.png"
+    },
+    {
+      "gold": "20623",
+      "pred": "20623",
+      "ok": true,
+      "file": "0161.png"
+    }
+  ]
+}
