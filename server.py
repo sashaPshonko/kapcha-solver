@@ -3,7 +3,6 @@
 
   POST /api/solve  { "pngBase64": "..." }  →  { "ok": true, "pred": "34941", ... }
   GET  /api/health
-
 """
 
 from __future__ import annotations
@@ -11,6 +10,7 @@ from __future__ import annotations
 import base64
 import json
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -24,8 +24,6 @@ CKPT = ROOT / "model" / "best.pt"
 HOST = "0.0.0.0"
 PORT = 8790
 MIN_CONF = 0.0
-
-app = FastAPI(title="kapcha-solver", version="1.0")
 
 _model = None
 _device = None
@@ -53,9 +51,13 @@ def try_load() -> None:
         _load_error = f"{type(e).__name__}: {e}"
 
 
-@app.on_event("startup")
-def _startup() -> None:
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
     try_load()
+    yield
+
+
+app = FastAPI(title="kapcha-solver", version="1.0", lifespan=lifespan)
 
 
 class SolveIn(BaseModel):
@@ -123,4 +125,5 @@ def solve(body: SolveIn) -> dict[str, Any]:
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("server:app", host=HOST, port=PORT, reload=False)
+    # app-объект, не "server:app" — иначе двойной импорт и странности с портом
+    uvicorn.run(app, host=HOST, port=PORT, reload=False)
