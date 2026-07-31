@@ -13,7 +13,6 @@ fi
 
 PY=.venv/bin/python
 
-# на многих VPS нет .venv/bin/pip — только python -m pip
 if ! "$PY" -m pip --version >/dev/null 2>&1; then
     echo "[solver] ensurepip…"
     "$PY" -m ensurepip --upgrade || true
@@ -25,15 +24,21 @@ if ! "$PY" -m pip --version >/dev/null 2>&1; then
     exit 1
 fi
 
-if ! "$PY" -c "import fastapi, uvicorn, torch, cv2" 2>/dev/null; then
-    echo "[solver] ставлю requirements.txt…"
+need_install=0
+"$PY" -c "import fastapi, uvicorn, cv2, PIL" 2>/dev/null || need_install=1
+"$PY" -c "import torch" 2>/dev/null || need_install=1
+
+if [[ "$need_install" -eq 1 ]]; then
+    echo "[solver] ставлю deps (CPU torch, без CUDA)…"
     "$PY" -m pip install -U pip
     "$PY" -m pip install -r requirements.txt
+    # лёгкая CPU-сборка — CUDA torch на VPS жрёт диск и не нужен
+    "$PY" -m pip install torch --index-url https://download.pytorch.org/whl/cpu
 fi
 
 echo "[solver] wrapper pid $$ — $PY"
 echo "[solver] :8790"
-"$PY" -c "import fastapi; print('[solver] fastapi', fastapi.__version__)"
+"$PY" -c "import fastapi, torch; print('[solver] fastapi', fastapi.__version__, 'torch', torch.__version__)"
 
 while true; do
     set +e
