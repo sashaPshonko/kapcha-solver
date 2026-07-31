@@ -4,30 +4,26 @@
   POST /api/solve  { "pngBase64": "..." }  →  { "ok": true, "pred": "34941", ... }
   GET  /api/health
 
-Auth (optional): header X-Solver-Token / Authorization: Bearer <token>
-  env SOLVER_TOKEN — if set, required.
 """
 
 from __future__ import annotations
 
 import base64
 import json
-import os
 import time
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from model_infer import load_model, pick_device, predict_png_bytes
 
 ROOT = Path(__file__).resolve().parent
-CKPT = Path(os.getenv("SOLVER_CKPT", str(ROOT / "model" / "best.pt")))
-HOST = os.getenv("SOLVER_HOST", "0.0.0.0")
-PORT = int(os.getenv("SOLVER_PORT", "8790"))
-TOKEN = (os.getenv("SOLVER_TOKEN") or "").strip()
-MIN_CONF = float(os.getenv("SOLVER_MIN_CONF", "0.0"))
+CKPT = ROOT / "model" / "best.pt"
+HOST = "0.0.0.0"
+PORT = 8790
+MIN_CONF = 0.0
 
 app = FastAPI(title="kapcha-solver", version="1.0")
 
@@ -36,21 +32,6 @@ _device = None
 _ready = False
 _load_error: str | None = None
 _metrics: dict[str, Any] = {}
-
-
-def _check_token(
-    x_solver_token: str | None = None,
-    authorization: str | None = None,
-) -> None:
-    if not TOKEN:
-        return
-    got = (x_solver_token or "").strip()
-    if not got and authorization:
-        auth = authorization.strip()
-        if auth.lower().startswith("bearer "):
-            got = auth[7:].strip()
-    if got != TOKEN:
-        raise HTTPException(401, detail="bad token")
 
 
 def try_load() -> None:
@@ -84,11 +65,7 @@ class SolveIn(BaseModel):
 
 
 @app.get("/api/health")
-def health(
-    x_solver_token: str | None = Header(default=None),
-    authorization: str | None = Header(default=None),
-) -> dict[str, Any]:
-    _check_token(x_solver_token, authorization)
+def health() -> dict[str, Any]:
     if not _ready:
         try_load()
     return {
@@ -98,17 +75,11 @@ def health(
         "device": str(_device) if _device is not None else None,
         "exact_match": _metrics.get("exact_match"),
         "char_accuracy": _metrics.get("char_accuracy"),
-        "token_required": bool(TOKEN),
     }
 
 
 @app.post("/api/solve")
-def solve(
-    body: SolveIn,
-    x_solver_token: str | None = Header(default=None),
-    authorization: str | None = Header(default=None),
-) -> dict[str, Any]:
-    _check_token(x_solver_token, authorization)
+def solve(body: SolveIn) -> dict[str, Any]:
     if not _ready:
         try_load()
     if not _ready or _model is None or _device is None:
