@@ -107,22 +107,23 @@ def _brightness_bgr(bgr: np.ndarray, delta: int) -> np.ndarray:
 
 
 def _tta_views(bgr: np.ndarray) -> list[np.ndarray]:
-    """Identity + small shifts + mild brightness (cheap CPU TTA)."""
-    return [
-        bgr,
-        _shift_bgr(bgr, 2, 0),
-        _shift_bgr(bgr, -2, 0),
-        _brightness_bgr(bgr, 12),
-        _brightness_bgr(bgr, -12),
-    ]
+    """Identity + ±2px shift (keep cheap; brightness rarely helps)."""
+    return [bgr, _shift_bgr(bgr, 2, 0), _shift_bgr(bgr, -2, 0)]
 
 
 @torch.no_grad()
-def predict_bgr(model: DigitCNN, bgr: np.ndarray, device: torch.device) -> tuple[str, list[float]]:
-    """Predict 5 digits; conf per digit from TTA-averaged softmax."""
+def predict_bgr(
+    model: DigitCNN,
+    bgr: np.ndarray,
+    device: torch.device,
+    *,
+    tta: bool = True,
+) -> tuple[str, list[float]]:
+    """Predict 5 digits; conf per digit from (optional) TTA-averaged softmax."""
+    views = _tta_views(bgr) if tta else [bgr]
     prob_sum: torch.Tensor | None = None
     n_views = 0
-    for view in _tta_views(bgr):
+    for view in views:
         crops = extract_digit_crops(view, None, crop_w=CROP_W, crop_h=CROP_H)
         xs = torch.stack([to_tensor(c) for c, _ in crops]).to(device)
         logits = model(xs)
@@ -136,7 +137,13 @@ def predict_bgr(model: DigitCNN, bgr: np.ndarray, device: torch.device) -> tuple
     return "".join(str(d) for d in pred_ids), [float(c) for c in conf]
 
 
-def predict_png_bytes(model: DigitCNN, png_bytes: bytes, device: torch.device) -> tuple[str, list[float]]:
+def predict_png_bytes(
+    model: DigitCNN,
+    png_bytes: bytes,
+    device: torch.device,
+    *,
+    tta: bool = True,
+) -> tuple[str, list[float]]:
     arr = np.frombuffer(png_bytes, dtype=np.uint8)
     bgr = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
     if bgr is None:
@@ -145,8 +152,14 @@ def predict_png_bytes(model: DigitCNN, png_bytes: bytes, device: torch.device) -
         bgr = cv2.cvtColor(bgr, cv2.COLOR_GRAY2BGR)
     elif bgr.shape[2] == 4:
         bgr = bgr[:, :, :3]
-    return predict_bgr(model, bgr, device)
+    return predict_bgr(model, bgr, device, tta=tta)
 
 
-def predict_path(model: DigitCNN, path: Path, device: torch.device) -> tuple[str, list[float]]:
-    return predict_bgr(model, load_bgr(path), device)
+def predict_path(
+    model: DigitCNN,
+    path: Path,
+    device: torch.device,
+    *,
+    tta: bool = True,
+) -> tuple[str, list[float]]:
+    return predict_bgr(model, load_bgr(path), device, tta=tta)
