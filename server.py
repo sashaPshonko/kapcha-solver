@@ -3,14 +3,20 @@
 
   POST /api/solve  { "pngBase64": "..." }  →  { "ok": true, "pred": "34941", ... }
   GET  /api/health
+
+Conf = min(digit_conf). Reject when below KAPCHA_MIN_CONF (default 0.55).
+Every solve is dumped under dumps/YYYYMMDD/ for later labeling.
 """
 
 from __future__ import annotations
 
 import base64
 import json
+import os
+import re
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -21,9 +27,10 @@ from model_infer import load_model, pick_device, predict_png_bytes
 
 ROOT = Path(__file__).resolve().parent
 CKPT = ROOT / "model" / "best.pt"
+DUMPS = ROOT / "dumps"
 HOST = "0.0.0.0"
 PORT = 8799
-MIN_CONF = 0.0
+MIN_CONF = float(os.environ.get("KAPCHA_MIN_CONF", "0.40"))
 
 _model = None
 _device = None
@@ -51,13 +58,67 @@ def try_load() -> None:
         _load_error = f"{type(e).__name__}: {e}"
 
 
+def _safe_token(s: str | None, fallback: str = "anon") -> str:
+    t = re.sub(r"[^a-zA-Z0-9_.-]+", "_", str(s or "").strip())[:32]
+    return t or fallback
+
+
+def dump_solve(
+    png: bytes,
+    *,
+    pred: str,
+    conf: float,
+    digit_conf: list[float],
+    ok: bool,
+    ms: int,
+    username: str | None,
+    fingerprint: str | None,
+) -> str | None:
+    """Write PNG + JSON sidecar; return relative path stem or None on failure."""
+    try:
+        day = datetime.now(timezone.utc).strftime("%Y%m%d")
+        out_dir = DUMPS / day
+        out_dir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now(timezone.utc).strftime("%H%M%S_%f")[:-3]
+        user = _safe_token(username)
+        stem = f"{ts}_{user}_{pred}_c{conf:.3f}"
+        if not ok:
+            stem += "_low"
+        png_path = out_dir / f"{stem}.png"
+        meta_path = out_dir / f"{stem}.json"
+        png_path.write_bytes(png)
+        meta_path.write_text(
+            json.dumps(
+                {
+                    "pred": pred,
+                    "conf": round(conf, 4),
+                    "digit_conf": [round(c, 4) for c in digit_conf],
+                    "ok": ok,
+                    "low_conf": not ok,
+                    "ms": ms,
+                    "username": username,
+                    "fingerprint": fingerprint,
+                    "ckpt": CKPT.name,
+                    "min_conf": MIN_CONF,
+                    "png": png_path.name,
+                },
+                indent=2,
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        return f"{day}/{stem}"
+    except Exception:
+        return None
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     try_load()
     yield
 
 
-app = FastAPI(title="kapcha-solver", version="1.0", lifespan=lifespan)
+app = FastAPI(title="kapcha-solver", version="1.1", lifespan=lifespan)
 
 
 class SolveIn(BaseModel):
@@ -75,6 +136,7 @@ def health() -> dict[str, Any]:
         "error": _load_error,
         "ckpt": str(CKPT.name),
         "device": str(_device) if _device is not None else None,
+        "min_conf": MIN_CONF,
         "exact_match": _metrics.get("exact_match"),
         "char_accuracy": _metrics.get("char_accuracy"),
     }
@@ -103,12 +165,24 @@ def solve(body: SolveIn) -> dict[str, Any]:
     except Exception as e:
         raise HTTPException(422, detail=f"predict failed: {type(e).__name__}: {e}") from e
     ms = int((time.perf_counter() - t0) * 1000)
-    conf = sum(digit_conf) / max(1, len(digit_conf))
 
     if len(pred) != 5 or not pred.isdigit():
         raise HTTPException(422, detail=f"bad pred {pred!r}")
 
+    # gate by weakest digit — mean hides one bad crop
+    conf = min(digit_conf) if digit_conf else 0.0
     ok = conf >= MIN_CONF
+    dump_id = dump_solve(
+        png,
+        pred=pred,
+        conf=conf,
+        digit_conf=digit_conf,
+        ok=ok,
+        ms=ms,
+        username=body.username,
+        fingerprint=body.fingerprint,
+    )
+
     return {
         "ok": ok,
         "pred": pred,
@@ -119,6 +193,8 @@ def solve(body: SolveIn) -> dict[str, Any]:
         "username": body.username,
         "fingerprint": body.fingerprint,
         "low_conf": not ok,
+        "dump": dump_id,
+        "min_conf": MIN_CONF,
     }
 
 

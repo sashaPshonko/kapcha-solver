@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import cv2
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from preprocess import extract_digit_crops, load_bgr
 
@@ -69,8 +71,12 @@ def pick_device() -> torch.device:
 
 
 def to_tensor(bgr: np.ndarray) -> torch.Tensor:
+    """Same normalization as kapcha/train/digit_train.py (ImageNet mean/std)."""
     rgb = bgr[:, :, ::-1].astype(np.float32) / 255.0
-    return torch.from_numpy(rgb).permute(2, 0, 1)
+    t = torch.from_numpy(np.ascontiguousarray(rgb)).permute(2, 0, 1)
+    mean = torch.tensor([0.485, 0.456, 0.406], dtype=t.dtype).view(3, 1, 1)
+    std = torch.tensor([0.229, 0.224, 0.225], dtype=t.dtype).view(3, 1, 1)
+    return (t - mean) / std
 
 
 def load_model(ckpt_path: Path, device: torch.device) -> DigitCNN:
@@ -82,20 +88,55 @@ def load_model(ckpt_path: Path, device: torch.device) -> DigitCNN:
     return model
 
 
+def _shift_bgr(bgr: np.ndarray, dx: int, dy: int) -> np.ndarray:
+    h, w = bgr.shape[:2]
+    m = np.float32([[1, 0, dx], [0, 1, dy]])
+    return cv2.warpAffine(
+        bgr,
+        m,
+        (w, h),
+        flags=cv2.INTER_LINEAR,
+        borderMode=cv2.BORDER_CONSTANT,
+        borderValue=(255, 255, 255),
+    )
+
+
+def _brightness_bgr(bgr: np.ndarray, delta: int) -> np.ndarray:
+    out = bgr.astype(np.int16) + int(delta)
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
+def _tta_views(bgr: np.ndarray) -> list[np.ndarray]:
+    """Identity + small shifts + mild brightness (cheap CPU TTA)."""
+    return [
+        bgr,
+        _shift_bgr(bgr, 2, 0),
+        _shift_bgr(bgr, -2, 0),
+        _brightness_bgr(bgr, 12),
+        _brightness_bgr(bgr, -12),
+    ]
+
+
 @torch.no_grad()
 def predict_bgr(model: DigitCNN, bgr: np.ndarray, device: torch.device) -> tuple[str, list[float]]:
-    crops = extract_digit_crops(bgr, None, crop_w=CROP_W, crop_h=CROP_H)
-    xs = torch.stack([to_tensor(c) for c, _ in crops]).to(device)
-    logits = model(xs)
-    probs = torch.softmax(logits, dim=1)
-    pred = logits.argmax(dim=1).tolist()
-    conf = probs.max(dim=1).values.tolist()
-    return "".join(str(d) for d in pred), [float(c) for c in conf]
+    """Predict 5 digits; conf per digit from TTA-averaged softmax."""
+    prob_sum: torch.Tensor | None = None
+    n_views = 0
+    for view in _tta_views(bgr):
+        crops = extract_digit_crops(view, None, crop_w=CROP_W, crop_h=CROP_H)
+        xs = torch.stack([to_tensor(c) for c, _ in crops]).to(device)
+        logits = model(xs)
+        probs = F.softmax(logits, dim=1)
+        prob_sum = probs if prob_sum is None else prob_sum + probs
+        n_views += 1
+    assert prob_sum is not None and n_views > 0
+    avg = prob_sum / n_views
+    pred_ids = avg.argmax(dim=1).tolist()
+    conf = avg.max(dim=1).values.tolist()
+    return "".join(str(d) for d in pred_ids), [float(c) for c in conf]
 
 
 def predict_png_bytes(model: DigitCNN, png_bytes: bytes, device: torch.device) -> tuple[str, list[float]]:
-    import cv2
-
     arr = np.frombuffer(png_bytes, dtype=np.uint8)
     bgr = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
     if bgr is None:

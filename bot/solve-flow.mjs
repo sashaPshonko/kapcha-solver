@@ -7,7 +7,7 @@
  * Capture берётся из соседнего ../kapcha/lib (в монорепо).
  *
  *   import { handleCaptchaLogin } from '../kapcha-solver/bot/solve-flow.mjs';
- *   await handleCaptchaLogin(bot, { password, solverUrl, solverToken });
+ *   await handleCaptchaLogin(bot, { password, solverUrl });
  */
 
 import { createRequire } from 'module';
@@ -31,13 +31,12 @@ export function isCaptchaChat(text) {
 
 /**
  * @param {string} solverUrl  e.g. http://1.2.3.4:8790
- * @param {{ pngBase64: string, username?: string, fingerprint?: string, token?: string, timeoutMs?: number }} opts
+ * @param {{ pngBase64: string, username?: string, fingerprint?: string, timeoutMs?: number }} opts
  */
 export async function solveRemote(solverUrl, opts) {
     const base = String(solverUrl || '').replace(/\/$/, '');
     if (!base) throw new Error('solverUrl empty');
     const headers = { 'Content-Type': 'application/json' };
-    if (opts.token) headers['X-Solver-Token'] = opts.token;
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 20_000);
     try {
@@ -56,7 +55,8 @@ export async function solveRemote(solverUrl, opts) {
             throw new Error(`solve HTTP ${res.status}: ${body.detail || JSON.stringify(body)}`);
         }
         if (!body.ok && body.low_conf) {
-            throw new Error(`low conf ${body.conf} pred=${body.pred}`);
+            // caller may refresh captcha; dump already on solver
+            throw new Error(`low conf ${body.conf} pred=${body.pred} dump=${body.dump || '-'}`);
         }
         if (!body.pred || !/^\d{5}$/.test(body.pred)) {
             throw new Error(`bad pred ${JSON.stringify(body)}`);
@@ -90,7 +90,6 @@ function sleep(ms) {
  * @param {{
  *   password: string,
  *   solverUrl: string,
- *   solverToken?: string,
  *   username?: string,
  *   quietMs?: number,
  *   maxWaitMs?: number,
@@ -126,7 +125,6 @@ export async function handleCaptchaLogin(bot, opts) {
         pngBase64,
         username: opts.username || bot.username,
         fingerprint: captured.fingerprint,
-        token: opts.solverToken,
     });
     log('pred', solved.pred, 'conf', solved.conf, `${solved.ms}ms`);
 
