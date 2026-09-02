@@ -5,7 +5,7 @@
   GET  /api/health
 
 Conf = min(digit_conf). Reject when below KAPCHA_MIN_CONF (default 0.55).
-Every solve is dumped under dumps/YYYYMMDD/ for later labeling.
+Dump PNG+JSON under dumps/YYYYMMDD/ unless request has dump=false (client solves).
 """
 
 from __future__ import annotations
@@ -28,8 +28,8 @@ from model_infer import load_model, pick_device, predict_png_bytes
 ROOT = Path(__file__).resolve().parent
 CKPT = ROOT / "model" / "best.pt"
 DUMPS = ROOT / "dumps"
-HOST = "0.0.0.0"
-PORT = 8799
+HOST = os.environ.get("KAPCHA_HOST", "127.0.0.1")
+PORT = int(os.environ.get("KAPCHA_PORT", "8799"))
 MIN_CONF = float(os.environ.get("KAPCHA_MIN_CONF", "0.40"))
 
 _model = None
@@ -125,6 +125,7 @@ class SolveIn(BaseModel):
     pngBase64: str = Field(..., min_length=32)
     username: str | None = None
     fingerprint: str | None = None
+    dump: bool = True
 
 
 @app.get("/api/health")
@@ -172,16 +173,18 @@ def solve(body: SolveIn) -> dict[str, Any]:
     # gate by weakest digit — mean hides one bad crop
     conf = min(digit_conf) if digit_conf else 0.0
     ok = conf >= MIN_CONF
-    dump_id = dump_solve(
-        png,
-        pred=pred,
-        conf=conf,
-        digit_conf=digit_conf,
-        ok=ok,
-        ms=ms,
-        username=body.username,
-        fingerprint=body.fingerprint,
-    )
+    dump_id = None
+    if body.dump:
+        dump_id = dump_solve(
+            png,
+            pred=pred,
+            conf=conf,
+            digit_conf=digit_conf,
+            ok=ok,
+            ms=ms,
+            username=body.username,
+            fingerprint=body.fingerprint,
+        )
 
     return {
         "ok": ok,
