@@ -28,6 +28,7 @@ from model_infer import load_model, pick_device, predict_png_bytes
 ROOT = Path(__file__).resolve().parent
 CKPT = ROOT / "model" / "best.pt"
 DUMPS = ROOT / "dumps"
+DUMP_KEEP_DAYS = int(os.environ.get("KAPCHA_DUMP_KEEP_DAYS", "7"))
 HOST = os.environ.get("KAPCHA_HOST", "127.0.0.1")
 PORT = int(os.environ.get("KAPCHA_PORT", "8799"))
 MIN_CONF = float(os.environ.get("KAPCHA_MIN_CONF", "0.40"))
@@ -112,9 +113,35 @@ def dump_solve(
         return None
 
 
+def prune_dumps(keep_days: int = DUMP_KEEP_DAYS) -> int:
+    if not DUMPS.exists() or keep_days < 1:
+        return 0
+    cutoff = time.time() - keep_days * 86400
+    n = 0
+    for p in DUMPS.rglob("*"):
+        if p.is_file() and p.stat().st_mtime < cutoff:
+            try:
+                p.unlink()
+                n += 1
+            except OSError:
+                pass
+    for d in sorted((x for x in DUMPS.glob("*") if x.is_dir()), reverse=True):
+        try:
+            next(d.iterdir())
+        except StopIteration:
+            try:
+                d.rmdir()
+            except OSError:
+                pass
+    return n
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     try_load()
+    dropped = prune_dumps()
+    if dropped:
+        print(f"[solver] prune dumps: {dropped} files", flush=True)
     yield
 
 
@@ -125,7 +152,7 @@ class SolveIn(BaseModel):
     pngBase64: str = Field(..., min_length=32)
     username: str | None = None
     fingerprint: str | None = None
-    dump: bool = True
+    dump: bool = False
 
 
 @app.get("/api/health")
