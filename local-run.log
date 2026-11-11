@@ -1,0 +1,90 @@
+INFO:     Started server process [62056]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8799 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60883 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61933 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64539 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [62056]
+INFO:     Started server process [62030]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8799 (Press CTRL+C to quit)
+INFO:     Started server process [62987]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8799 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62255 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [62987]
+INFO:     Started server process [63844]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8799 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54282 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49891 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55408 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59222 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59261 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56426 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56655 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57054 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57215 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57435 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57460 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57624 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57785 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57829 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57866 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57867 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57920 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57930 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58112 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58165 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58203 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58242 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58728 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59003 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59032 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59073 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59358 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59402 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59419 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59593 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59789 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59789 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59905 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59789 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59994 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60164 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61185 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55331 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55331 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55331 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58154 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58154 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58154 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58525 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58525 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49404 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50539 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50940 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51292 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51521 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51643 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51880 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51947 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51980 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52694 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52733 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53204 - "POST /api/solve HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [63844]
